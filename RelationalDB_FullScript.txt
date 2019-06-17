@@ -1,0 +1,736 @@
+/* 1. Make sure the Master database (the overall container database) is selected */
+USE MASTER;
+GO
+  
+/*2. Create THE Cus_Orders database */
+CREATE DATABASE Cus_Orders;
+GO
+
+/* 3. Set the newly created database as the current database – very important */
+USE Cus_Orders;
+GO
+
+/* 4. Create user type for customers table */
+CREATE TYPE cusid FROM char(5) NOT NULL;
+GO
+
+/* 5. Create user type for orders table */
+CREATE TYPE ordid FROM int NOT NULL;
+GO
+
+/* 6. Create user type for order_details table */
+CREATE TYPE orddetid FROM int NOT NULL;
+GO
+
+/* 7. Create user type for products table */
+CREATE TYPE prodid FROM int NOT NULL;
+GO
+
+/* 8.  Create customers table */
+CREATE TABLE customers
+(
+customer_id cusid,
+name varchar(50) NOT NULL,
+contact_name varchar(30),
+title_id char(3) NOT NULL,
+address varchar(50),
+city varchar(20),
+region varchar(15),
+country_code varchar(10),
+country varchar(15),
+phone varchar(20),
+fax varchar(20)
+ );
+GO
+
+/* 9.  Create orders table */
+CREATE TABLE orders
+(
+order_id ordid,
+customer_id cusid,
+employee_id int NOT NULL,
+shipping_name varchar(50),
+address varchar(50),
+shipping_city varchar(20),
+shipping_region varchar(15),
+shipping_country_code varchar(10),
+shipping_country varchar(15),
+shipper_id int NOT NULL,
+order_date datetime,
+required_date datetime,
+shipped_date datetime,
+freight_charge money
+ );
+
+GO
+/* 10.  Create order_details table */
+CREATE TABLE order_details
+(
+order_id ordid,
+product_id ordid,
+quantity int NOT NULL,
+discount float NOT NULL
+ );
+GO
+
+/* 11.  Create products table */
+CREATE TABLE products
+(
+product_id ordid,
+supplier_id int NOT NULL,
+name varchar(40) NOT NULL,
+alternate_name varchar(40),
+quantity_per_unit varchar(25),
+unit_price money,
+quantity_in_stock int,
+units_on_order int,
+reorder_level int
+ );
+GO
+
+/* 12.  Create shippers table */
+CREATE TABLE shippers
+(
+shipper_id int NOT NULL IDENTITY(1,1),
+name varchar(20) NOT NULL
+ );
+GO
+
+
+
+/* 13.  Create suppliers table */
+CREATE TABLE suppliers
+(
+supplier_id int NOT NULL IDENTITY(1,1),
+name varchar(40) NOT NULL,
+address varchar(30),
+city varchar(20),
+province char(2),
+ );
+GO
+
+/* 14.  Create titles table */
+CREATE TABLE titles
+(
+title_id char(3) NOT NULL,
+description varchar(35) NOT NULL
+ );
+GO
+
+/* 15. Add PK to customers table */
+ALTER TABLE customers
+ADD PRIMARY KEY (customer_id);
+GO
+
+/* 16. Add PK to orders table */
+ALTER TABLE orders
+ADD PRIMARY KEY (order_id);
+GO
+
+/* 17. Add PK to products table */
+ALTER TABLE products
+ADD PRIMARY KEY (product_id);
+GO
+/* 18. Add PK to shippers table */
+ALTER TABLE shippers
+ADD PRIMARY KEY (shipper_id);
+GO
+
+/* 19. Add PK to suppliers table */
+ALTER TABLE suppliers
+ADD PRIMARY KEY (supplier_id);
+GO
+
+/* 20. Add PK to titles table */
+ALTER TABLE titles
+ADD PRIMARY KEY (title_id);
+GO
+
+/* 21. Set up PK – FK link customer to orders */
+ALTER TABLE orders
+ADD CONSTRAINT FK_Order_customers FOREIGN KEY (customer_id)
+REFERENCES customers
+(customer_id);
+GO
+
+/* 22. Set up PK – FK link shippers to orders */
+ALTER TABLE orders
+ADD CONSTRAINT FK_Order_shippers FOREIGN KEY (shipper_id)
+REFERENCES shippers
+(shipper_id);
+GO
+
+/* 23. Set up PK – FK link suppliers to products */
+ALTER TABLE products
+ADD CONSTRAINT FK_Products_suppliers FOREIGN KEY (supplier_id)
+REFERENCES suppliers
+(supplier_id);
+GO
+
+/* 24. Set up PK – FK link titles to customers*/
+ALTER TABLE customers
+ADD CONSTRAINT FK_Title_id FOREIGN KEY (title_id)
+REFERENCES titles
+(title_id);
+GO
+
+/* 25. Set up PK – FK link orders to order_details*/
+ALTER TABLE order_details
+ADD CONSTRAINT FK_Order_id FOREIGN KEY (order_id)
+REFERENCES orders
+(order_id);
+GO
+
+/* 26. Set up PK – FK link products to order_details*/
+ALTER TABLE order_details
+ADD CONSTRAINT FK_Product_id FOREIGN KEY (product_id)
+REFERENCES products
+(product_id);
+GO
+
+/* 27. Add composite PK to order_details table */
+ALTER TABLE order_details
+ADD PRIMARY KEY (order_id,product_id );
+GO
+
+/* 28. Add a constraint on the customers table where country defaults to 'Canada'*/
+ALTER TABLE customers
+ADD CONSTRAINT df_Country
+DEFAULT 'Canada' FOR country;
+GO
+
+/* 29. Add a constraint on the orders table where required_date default to today's + 10 days*/
+ALTER TABLE orders
+ADD CONSTRAINT df_Required_Date
+DEFAULT (GetDate() + 10) FOR required_date;
+GO
+
+/* 30. Add a constraint on the order_details table where quantity must be greater or equal to 1*/
+ALTER TABLE order_details
+ADD CONSTRAINT CHK_Quantity CHECK (quantity >=1);
+GO
+
+/* 31. Add a constraint on the products table where reorder_level must be greater or equal to 1 AND quantity_in_stock cannot be greater than 150*/
+ALTER TABLE products
+ADD CONSTRAINT CHK_ReordertoQuantity CHECK (reorder_level >=1 AND quantity_in_stock < 151);
+GO
+
+/* 32. Add a constraint on the suppliers table where province defaults to 'BC'*/
+ALTER TABLE suppliers
+ADD CONSTRAINT df_Province
+DEFAULT 'BC' FOR province;
+GO
+
+/* 33. Bulk insert via script provided */
+BULK INSERT titles 
+FROM 'C:\TextFiles\titles.txt' 
+WITH (
+               CODEPAGE=1252,                  
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	 )
+
+BULK INSERT suppliers 
+FROM 'C:\TextFiles\suppliers.txt' 
+WITH (  
+               CODEPAGE=1252,               
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+
+BULK INSERT shippers 
+FROM 'C:\TextFiles\shippers.txt' 
+WITH (
+               CODEPAGE=1252,            
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+
+BULK INSERT customers 
+FROM 'C:\TextFiles\customers.txt' 
+WITH (
+               CODEPAGE=1252,            
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+
+BULK INSERT products 
+FROM 'C:\TextFiles\products.txt' 
+WITH (
+               CODEPAGE=1252,             
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+
+BULK INSERT order_details 
+FROM 'C:\TextFiles\order_details.txt'  
+WITH (
+               CODEPAGE=1252,              
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+
+BULK INSERT orders 
+FROM 'C:\TextFiles\orders.txt' 
+WITH (
+               CODEPAGE=1252,             
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	  )
+GO
+
+/* 34. List the customer id, name, city, and country from the customer table. Order the result set by the customer id */
+SELECT
+customer_id,
+name,
+city,
+country
+FROM customers
+ORDER BY customer_id
+GO
+
+/* 35. We add a new column called active to the customers table using the ALTER statement.  The only valid values are 1 or 0.  The default should be 1. */
+ALTER TABLE customers
+ADD active tinyint NOT NULL DEFAULT(1)
+GO
+
+/* 36. orders where the order date is between January 1 and December 31, 2001.  Display order id, order date, and a new shipped date calculated by adding 7 days to shipped date, the product name from the product table, the customer name from the customer table, and the cost of the order.  Format the date order date and the shipped date as MON DD YYYY.  Use the formula (quantity * unit_price) to calculate the cost of the order.*/
+
+SELECT
+orders.order_id,
+product_name = products.name,
+customer_name = customers.name,
+order_date = CONVERT(CHAR(12),order_date,107),
+'new shipped date' = CONVERT(CHAR(12),orders.shipped_date + 7,107),
+'order cost' = products.unit_price * order_details.quantity
+FROM order_details
+INNER JOIN products ON products.product_id = order_details.product_id
+INNER JOIN orders ON orders.order_id = order_details.order_id
+INNER JOIN customers ON orders.customer_id = customers.customer_id
+WHERE orders.order_date BETWEEN '01/01/2001' AND '12/31/2001'
+GO
+
+/* 37. all the orders that have not been shipped. Display the customer id, name and phone number from the customers table, and the order id and order date from the orders table. Order the result set by the customer name.*/
+SELECT
+orders.customer_id,
+customers.name,
+customers.phone,
+orders.order_id,
+orders.order_date
+FROM orders
+INNER JOIN customers ON orders.customer_id = customers.customer_id
+WHERE orders.shipped_date IS NULL
+ORDER BY customers.name
+GO
+
+/* 38. all the customers where the region is NULL.  Display the customer id, name, and city from the customers table, and the title description from the titles table.*/
+SELECT
+customers.customer_id,
+customers.name,
+customers.city,
+titles.description
+FROM customers
+INNER JOIN titles ON customers.title_id = titles.title_id
+WHERE customers.region IS NULL
+GO
+
+/* 39. products where the reorder level is higher than the quantity in stock.  Display the supplier name from the suppliers table, the product name, reorder level, and quantity in stock from the products table.  Order the result set by the supplier name.*/
+SELECT
+'supplier name' = suppliers.name,
+products.name,
+products.reorder_level,
+products.quantity_in_stock
+FROM suppliers
+INNER JOIN products ON products.supplier_id = suppliers.supplier_id
+WHERE products.reorder_level > products.quantity_in_stock
+ORDER BY suppliers.name
+GO
+/* 40.	Calculate the length in years from January 1, 2008 and when an order was shipped where the shipped date is not null.  Display the order id, and the shipped date from the orders table, the customer name, and the contact name from the customers table, and the length in years for each order.  Display the shipped date in the format MMM DD YYYY.  Order the result set by order id and the calculated years.*/
+SELECT
+orders.order_id,
+customers.name,
+customers.contact_name,
+'shipped_date' = CONVERT(CHAR(12),orders.shipped_date,107),
+'elapsed' = DATEDIFF(year, orders.shipped_date, '2008/01/01')
+from customers
+INNER JOIN orders ON orders.customer_id = customers.customer_id
+WHERE orders.shipped_date IS NOT NULL
+GO
+
+/* 41. number of customers with names beginning with each letter of the alphabet.  Ignore customers whose name begins with the letter S.  Do not display the letter and count unless at least two customer’s names begin with the letter.*/
+SELECT
+name = SUBSTRING(customers.name,1,1),
+'total' = COUNT(*)
+FROM customers
+WHERE SUBSTRING(customers.name,1,1) != 'S'
+GROUP BY SUBSTRING(customers.name,1,1)
+HAVING COUNT(*) >= 2
+GO
+
+/* 42. List the order details where the quantity is greater than 100.  Display the order id and quantity from the order_details table, the product id and reorder level from the products table, and the supplier id from the suppliers table.  Order the result set by the order id.*/
+SELECT
+order_details.order_id,
+order_details.quantity,
+products.product_id,
+products.reorder_level,
+suppliers.supplier_id
+FROM order_details
+INNER JOIN products ON products.product_id = order_details.product_id
+INNER JOIN suppliers ON suppliers.supplier_id = products.supplier_id
+WHERE order_details.quantity > 100
+ORDER BY  order_details.order_id
+GO
+
+/* 43.	List the products which contain tofu or chef in their name.  Display the product id, product name, quantity per unit and unit price from the products table.  Order the result set by product name.*/
+SELECT
+products.product_id,
+products.name,
+products.quantity_per_unit,
+products.unit_price
+FROM products
+WHERE products.name LIKE '%TOFU%' OR products.name LIKE '%CHEF%'
+ORDER BY products.name
+GO
+
+/* 44. Create an employee table with the following columns:*/
+CREATE TABLE employee
+(
+employee_id int NOT NULL,
+last_name varchar(30) NOT NULL,
+first_name varchar(15) NOT NULL,
+address varchar(30),
+city varchar(20),
+province char(2),
+postal_code varchar(7),
+phone varchar(10),
+birth_date datetime NOT NULL,
+);
+GO
+
+
+/* 45. Add PK to employee table:*/
+ALTER TABLE employee
+ADD PRIMARY KEY (employee_id);
+GO
+
+/* 46.	Load the data into the employee table using the employee.txt file; 9 rows.  In addition, create the relationship to enforce referential integrity between the employee and orders tables.*/
+
+BULK INSERT employee 
+FROM 'C:\TextFiles\employee.txt' 
+WITH (         CODEPAGE=1252,            
+		DATAFILETYPE = 'char',
+		FIELDTERMINATOR = '\t',
+		KEEPNULLS,
+		ROWTERMINATOR = '\n'	            
+	 )
+GO
+
+/* 47. Set up PK – FK link employee to orders*/
+ALTER TABLE orders
+ADD CONSTRAINT FK_Employee_orders FOREIGN KEY (employee_id)
+REFERENCES employee
+(employee_id);
+GO
+
+/* 48. Using the INSERT statement, add the shipper Quick Express to the shippers table.*/
+INSERT INTO shippers
+VALUES('Quick Express')
+GO
+
+
+
+/* 49. Using the UPDATE statement, increate the unit price in the products table of all rows with a current unit price between $5.00 and $10.00 by 5%; 12 rows affected.*/
+UPDATE  products
+SET unit_price = unit_price * 1.05
+WHERE unit_price >= 5 AND unit_price <= 10;
+GO
+
+/* 50. Using the UPDATE statement, change the fax value to Unknown for all rows in the customers table where the current fax value is NULL; 22 rows affected.*/
+UPDATE  customers
+SET fax = 'Unknown'
+WHERE fax IS NULL;
+GO
+
+/* 51. Create a view called vw_order_cost to list the cost of the orders.  Display the order id and order_date from the orders table, the product id from the products table, the customer name from the customers table, and the order cost.  To calculate the cost of the orders, use the formula (order_details.quantity * products.unit_price).  Run the view for the order ids between 10000 and 10200.*/
+CREATE VIEW vw_order_cost
+AS
+SELECT
+orders.order_id,
+orders.order_date,
+products.product_id,
+customers.name,
+'order_cost' = (order_details.quantity * products.unit_price)
+FROM customers
+INNER JOIN orders ON orders.customer_id = customers.customer_id
+INNER JOIN order_details ON order_details.order_id = orders.order_id
+INNER JOIN products ON products.product_id = order_details.product_id
+GO
+
+select * from vw_order_cost
+WHERE order_id >= 10000 AND order_id <= 10200
+GO
+/* 52. Create a view called vw_list_employees to list all the employees and all the columns in the employee table.  Run the view for employee ids 5, 7, and 9.  Display the employee id, last name, first name, and birth date.  Format the name as last name followed by a comma and a space followed by the first name.  Format the birth date as YYYY.MM.DD. */
+CREATE VIEW vw_list_employees
+AS
+SELECT
+employee.employee_id,
+'name' = employee.last_name + ', ' + employee.first_name,
+'birth_date' = CONVERT(VARCHAR(10), employee.birth_date, 102)
+FROM employee
+GO
+
+select * from vw_list_employees
+WHERE employee_id = 5 OR employee_id = 7 OR employee_id = 9
+GO
+
+/* 53. Create a view called vw_all_orders to list all the orders.  Display the order id and shipped date from the orders table, and the customer id, name, city, and country from the customers table.  Run the view for orders shipped from January 1, 2002 and December 31, 2002, formatting the shipped date as MON DD YYYY.  Order the result set by customer name and country.*/
+CREATE VIEW vw_all_orders
+AS
+SELECT
+orders.order_id,
+customers.customer_id,
+customers.name,
+customers.city,
+customers.country,
+orders.shipped_date
+FROM orders
+INNER JOIN customers ON orders.customer_id = customers.customer_id
+GO
+
+
+-- We display the view vw_all_orders for the following dates:
+SELECT 
+order_id,
+customer_id,
+name,
+city,
+country,
+'shipped_date' = CONVERT(CHAR(11), shipped_date, 109)
+FROM vw_all_orders
+WHERE shipped_date BETWEEN 'Jan 1 2002' AND 'Dec 31 2002'
+ORDER BY name, country
+GO
+
+/* 54.	Create a view listing the suppliers and the items they have shipped.  Display the supplier id and name from the suppliers table, and the product id and name from the products table.  Run the view. */
+CREATE VIEW vw_suppl_items
+AS
+SELECT
+suppliers.supplier_id,
+'supplier name' = suppliers.name,
+products.product_id,
+'product name' = products.name
+FROM suppliers
+INNER JOIN products ON products.supplier_id = suppliers.supplier_id
+GO
+
+SELECT * 
+FROM vw_suppl_items
+GO
+
+
+
+/* 55. Create a stored procedure called sp_customer_city displaying the customers living in a particular city.  The city will be an input parameter for the stored procedure.  Display the customer id, name, address, city and phone from the customers table.  Run the stored procedure displaying customers living in London.*/
+CREATE PROCEDURE sp_customer_city
+(
+	@city varchar(20)
+)
+
+AS
+SELECT	
+customers.customer_id, 
+customers.name, 
+customers.address, 
+customers.city, 
+customers.phone
+FROM	customers 
+WHERE	customers.city = @city
+GO
+
+EXECUTE sp_customer_city 'London'
+GO
+
+/* 56. Create a stored procedure called sp_orders_by_dates displaying the orders shipped between particular dates.  The start and end date will be input parameters for the stored procedure.  Display the order id, customer id, and shipped date from the orders table, the customer name from the customer table, and the shipper name from the shippers table.  Run the stored procedure displaying orders from January 1, 2003 to June 30, 2003.*/
+CREATE PROCEDURE sp_orders_by_date
+(
+	@start_date varchar(20),
+	@end_date varchar(20)
+)
+AS
+SELECT	orders.order_id, orders.customer_id, customers.name, shippers.name, orders.shipped_date
+FROM	customers 
+INNER JOIN orders ON orders.customer_id = customers.customer_id
+INNER JOIN shippers ON shippers.shipper_id = orders.shipper_id
+WHERE shipped_date BETWEEN @start_date AND @end_date
+GO
+
+EXECUTE sp_orders_by_date '2003-01-01','2003-06-30'
+GO
+
+/* 57. Create a stored procedure called sp_product_listing listing a specified product ordered during a specified month and year.  The product and the month and year will be input parameters for the stored procedure.  Display the product name, unit price, and quantity in stock from the products table, and the supplier name from the suppliers table.  Run the stored procedure displaying a product name containing Jack and the month of the order date is June and the year is 2001.*/
+CREATE PROCEDURE sp_product_listing
+(
+	@product varchar(50),
+	@month varchar(9),
+	@year int
+)
+AS
+SELECT	
+products.name, 
+products.unit_price, 
+products.quantity_in_stock, 
+suppliers.name
+FROM suppliers 
+INNER JOIN products ON suppliers.supplier_id = products.supplier_id
+INNER JOIN order_details ON products.product_id = order_details.product_id
+INNER JOIN orders ON order_details.order_id = orders.order_id
+WHERE products.name LIKE '%' + @product + '%'
+AND DATENAME(month, orders.order_date) = @month
+AND DATENAME(year, orders.order_date) = @year
+GO
+
+-- We execute the stored procedure sp_product_listing with the following parameters
+EXECUTE sp_product_listing 'Jack','June', 2001
+GO
+
+/* 58.	Create a DELETE trigger on the order_details table.*/
+CREATE TRIGGER del_orderdetails
+ON	order_details
+FOR DELETE
+AS
+DECLARE 
+@pid varchar(6), 
+@qty smallint
+SELECT
+ @pid= product_id, 
+@qty= quantity FROM deleted
+--do update on products table
+BEGIN
+UPDATE products
+SET products.quantity_in_stock = products.quantity_in_stock +  @qty
+WHERE products.product_id = @pid
+-- display details
+SELECT 
+'Product ID' = @pid,
+'Product Name' = products.name,
+'Quantity being deleted from Order' = @qty,
+'In stock Quantity after Deletion' = products.quantity_in_stock
+FROM deleted
+INNER JOIN products ON deleted.product_id = products.product_id  
+END
+GO
+
+DELETE order_details
+WHERE order_id=10001 AND product_id=25
+GO
+
+
+
+/* 59.	Create an INSERT and UPDATE trigger called tr_check_qty on the order_details table to only allow orders of products that have a quantity in stock greater than or equal to the units ordered. */
+CREATE TRIGGER tr_check_qty
+ON order_details
+FOR INSERT, UPDATE
+AS
+DECLARE @prodid int
+SELECT 
+@prodid = product_id
+FROM inserted
+IF ( SELECT products.quantity_in_stock FROM products WHERE products.product_id = @prodid ) >= ( SELECT products.units_on_order FROM products WHERE products.product_id = @prodid )
+BEGIN
+ROLLBACK TRANSACTION
+PRINT 'Stock Quantity is too low'
+END
+GO
+
+UPDATE order_details
+SET quantity = 30
+WHERE order_id = '10044' AND product_id = 7
+GO
+
+/* 60. Create a stored procedure called sp_del_inactive_cust to delete customers that have no orders.  The stored procedure should delete 1 row. */
+CREATE PROCEDURE sp_del_inactive_cust
+AS
+DELETE
+FROM customers
+WHERE customers.customer_id NOT IN ( SELECT orders.customer_id FROM orders )
+GO
+-- We will now execute the Stored Procedure sp_del_inactive_cust
+EXECUTE sp_del_inactive_cust
+GO
+
+/* 61. Create a stored procedure called sp_employee_information to display the employee information for a particular employee.  The employee id will be an input parameter for the stored procedure.  Run the stored procedure displaying information for employee id of 5.  The stored procedure should produce the result set listed below.*/
+CREATE PROCEDURE sp_employee_information (
+	@emp_id int
+)
+AS
+SELECT 
+employee.employee_id, 
+employee.last_name, 
+employee.first_name, 
+employee.address, 
+employee.city, 
+employee.province, 
+employee.postal_code, 
+employee.phone, 
+employee.birth_date
+FROM employee
+WHERE employee.employee_id = @emp_id
+GO
+
+-- We run the stored procedure for an employee id number 5
+EXECUTE sp_employee_information 5
+GO
+
+/* 62. Create a stored procedure called sp_reorder_qty to show when the reorder level subtracted from the quantity in stock is less than a specified value.  The unit value will be an input parameter for the stored procedure.  Display the product id, quantity in stock, and reorder level from the products table, and the supplier name, address, city, and province from the suppliers table.  Run the stored procedure displaying the information for a value of 5.*/
+CREATE PROCEDURE sp_reorder_qty (
+	@unit int
+)
+AS
+SELECT 
+products.product_id, 
+suppliers.name, 
+suppliers.address, 
+suppliers.city, 
+suppliers.province, 
+'qty' = products.quantity_in_stock,
+products.reorder_level
+FROM products
+INNER JOIN suppliers ON products.supplier_id = suppliers.supplier_id
+WHERE (products.quantity_in_stock - products.reorder_level) < @unit
+GO
+
+-- We run the stored procedure for a value of 5
+EXECUTE sp_reorder_qty '5'
+GO
+
+/* 63. Create a stored procedure called sp_unit_prices for the product table where the unit price is between particular values.  The two unit prices will be input parameters for the stored procedure.  Display the product id, product name, alternate name, and unit price from the products table.  Run the stored procedure to display products where the unit price is between $5.00 and $10.00.*/
+CREATE PROCEDURE sp_unit_prices (
+@unit_min money,
+@unit_max money
+)
+AS
+SELECT
+products.product_id, 
+products.name, 
+products.alternate_name, 
+products.unit_price
+FROM products
+WHERE unit_price BETWEEN @unit_min AND @unit_max
+GO
+
+-- We run sp_unit_prices for a unit between $5 and $10
+EXECUTE sp_unit_prices 5, 10
+GO 
